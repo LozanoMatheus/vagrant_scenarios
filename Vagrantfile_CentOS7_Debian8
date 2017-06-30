@@ -1,0 +1,71 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+VAGRANTFILE_API_VERSION = "2"
+PUPPET_DEBIAN           = <<PUPPET
+  dpkg -s puppet-agent > /dev/null && exit
+  wget http://apt.puppetlabs.com/puppetlabs-release-pc1-jessie.deb
+  dpkg -i puppetlabs-release-pc1-jessie.deb
+  apt-get update && apt-get install puppet-agent -y
+  export PATH=$PATH:/opt/puppetlabs/bin:/opt/puppetlabs/puppet/bin
+PUPPET
+
+PUPPET_CENTOS           = <<PUPPET
+  rpm -qi puppet-agent > /dev/null && exit
+  yum install wget -y
+  wget http://yum.puppetlabs.com/puppetlabs-release-pc1-el-7.noarch.rpm
+  rpm -i puppetlabs-release-pc1-el-7.noarch.rpm
+  yum install puppet-agent -y
+  export PATH=$PATH:/opt/puppetlabs/bin:/opt/puppetlabs/puppet/bin
+PUPPET
+
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+  
+  # Debian
+  config.vm.define "debian" do |debian|
+    debian.vm.hostname = "debian.lab"
+    debian.vm.box      = "debian/jessie64"
+    debian.vm.network "private_network", ip: "192.168.200.10"
+
+    debian.vm.provider "virtualbox" do |v|
+      v.gui    = true
+      v.name   = "Debian Jessie"
+      v.memory = 1024
+      v.cpus   = 1
+    end
+
+    debian.vm.provision "shell", inline: PUPPET_DEBIAN
+ 
+    debian.vm.provision "puppet" do |puppet|
+      puppet.environment_path = "../puppet/environments"
+      puppet.environment      = "production"
+      puppet.manifests_path   = "../puppet/environments/production/manifests"
+      puppet.manifest_file    = "site.pp"
+      puppet.module_path      = "../puppet/environments/production/modules"
+    end
+  end
+  
+  #CentOS
+  config.vm.define "centos" do |centos|   
+    centos.vm.hostname = "centos.lab"
+    centos.vm.box      = "centos/7"
+    centos.vm.network "private_network", ip: "192.168.200.20"
+    
+    centos.vm.provider "virtualbox" do |v|
+      v.gui    = true
+      v.name   = "CentOS 7"
+      v.memory = 1024
+      v.cpus   = 1
+    end
+
+    centos.vm.provision "shell", inline: PUPPET_CENTOS
+ 
+    centos.vm.provision "puppet" do |puppet|
+      puppet.environment_path = "../puppet/environments"
+      puppet.environment      = "production"
+      puppet.manifests_path   = "../puppet/environments/production/manifests"
+      puppet.manifest_file    = "site.pp"
+      puppet.module_path      = "../puppet/environments/production/modules"
+    end
+  end
+end
