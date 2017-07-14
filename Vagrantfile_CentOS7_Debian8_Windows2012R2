@@ -19,6 +19,10 @@ PUPPET_CENTOS           = <<PUPPET
   export PATH=$PATH:/opt/puppetlabs/bin:/opt/puppetlabs/puppet/bin
 PUPPET
 
+PUPPET_WINDOWS          = <<PUPPET
+  if (Get-ItemProperty HKLM:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\* | findstr Puppet) { exit } else { msiexec.exe /qn /norestart /i C:\\vagrant\\puppet-agent-5.0.0-x64.msi ; Start-Sleep -s 35 } 
+PUPPET
+
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   
   # Debian
@@ -31,17 +35,17 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       v.gui    = true
       v.name   = "Debian Jessie"
       v.memory = 1024
-      v.cpus   = 1
+      v.cpus   = 2
     end
 
     debian.vm.provision "shell", inline: PUPPET_DEBIAN
  
     debian.vm.provision "puppet" do |puppet|
-      puppet.environment_path = "../puppet/environments"
+      puppet.environment_path = "~/InfraAsCode/puppet/environments"
       puppet.environment      = "production"
-      puppet.manifests_path   = "../puppet/environments/production/manifests"
+      puppet.manifests_path   = "~/InfraAsCode/puppet/environments/production/manifests"
       puppet.manifest_file    = "site.pp"
-      puppet.module_path      = "../puppet/environments/production/modules"
+      puppet.module_path      = "~/InfraAsCode/puppet/environments/production/modules"
     end
   end
   
@@ -55,17 +59,42 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       v.gui    = true
       v.name   = "CentOS 7"
       v.memory = 1024
-      v.cpus   = 1
+      v.cpus   = 2
     end
 
     centos.vm.provision "shell", inline: PUPPET_CENTOS
  
     centos.vm.provision "puppet" do |puppet|
-      puppet.environment_path = "../puppet/environments"
+      puppet.environment_path = "~/InfraAsCode/puppet/environments"
       puppet.environment      = "production"
-      puppet.manifests_path   = "../puppet/environments/production/manifests"
+      puppet.manifests_path   = "~/InfraAsCode/puppet/environments/production/manifests"
       puppet.manifest_file    = "site.pp"
-      puppet.module_path      = "../puppet/environments/production/modules"
+      puppet.module_path      = "~/InfraAsCode/puppet/environments/production/modules"
     end
   end
+
+  config.vm.define "windows" do |windows|
+    windows.vm.hostname = "windows-2012R2"
+    windows.vm.box      = "opentable/win-2012r2-standard-amd64-nocm"
+    windows.vm.network "private_network", ip: "192.168.200.30"
+
+    windows.vm.provider "virtualbox" do |v|
+      v.gui    = true
+      v.name   = "Windows Server 2012"
+      v.memory = 2048
+      v.cpus   = 2
+    end
+
+    windows.vm.provision "shell", inline: PUPPET_WINDOWS
+
+    windows.vm.provision "puppet" do |puppet|
+      puppet.environment_path   = "~/InfraAsCode/puppet/environments"
+      puppet.environment        = "production"
+      puppet.manifests_path     = "~/InfraAsCode/puppet/environments/production/manifests"
+      puppet.manifest_file      = "site.pp"
+      puppet.module_path        = "~/InfraAsCode/puppet/environments/production/modules"
+    end
+
+  end
+
 end
